@@ -1,138 +1,50 @@
-
 function generateFileName(fileType) {
-    // Fetch document details
-    let title =
-      document.getElementById("doc-title").value.trim() || "Math Questions";
-    let author =
-      document.getElementById("doc-author").value.trim() || "Unknown Author";
-    let date =
-      document.getElementById("doc-date").value ||
-      new Date().toISOString().split("T")[0];
-  
-    // Convert to camel case (remove spaces, capitalize words)
-    function toCamelCase(str) {
-      return str
-        .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters
-        .split(" ")
-        .map((word, index) =>
-          index === 0
-            ? word.toLowerCase()
-            : word.charAt(0).toUpperCase() + word.slice(1)
-        )
-        .join("");
-    }
-  
-    title = toCamelCase(title);
-    author = toCamelCase(author);
-  
-    return `${title}_${author}_${date}.${fileType}`;
-  }
-  
-  function createQuestionBlock(questionData = null) {
-    const questionBox = document.createElement("div");
-    questionBox.classList.add(
-      "question-box",
-      "bg-gray-50",
-      "p-4",
-      "rounded-lg",
-      "shadow-sm",
-      "mt-4"
-    );
-  
-    questionBox.innerHTML = `
-          <label class="block text-gray-700 font-medium">Enter Question (Supports LaTeX):</label>
-          <textarea class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 mt-2 question-input">${
-            questionData ? questionData.question : ""
-          }</textarea>
-  
-          <label class="block text-gray-700 font-medium mt-2">Difficulty Level:</label>
-          <select class="w-full p-2 border border-gray-300 rounded-md mt-1 difficulty">
-              <option value="easy" ${
-                questionData && questionData.difficulty === "easy"
-                  ? "selected"
-                  : ""
-              }>Easy</option>
-              <option value="medium" ${
-                questionData && questionData.difficulty === "medium"
-                  ? "selected"
-                  : ""
-              }>Medium</option>
-              <option value="hard" ${
-                questionData && questionData.difficulty === "hard"
-                  ? "selected"
-                  : ""
-              }>Hard</option>
-          </select>
-  
-          <label class="block text-gray-700 font-medium mt-2">Options:</label>
-          <div class="options-container mt-2 space-y-2">
-              ${
-                questionData
-                  ? questionData.options
-                      .map(
-                        (option) => `
-                  <div class="flex">
-                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" value="${option}">
-                      <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">X</button>
-                  </div>`
-                      )
-                      .join("")
-                  : `
-                  <div class="flex">
-                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="Option A">
-                      <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">X</button>
-                  </div>
-                  <div class="flex">
-                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="Option B">
-                      <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">X</button>
-                  </div>
-              `
-              }
-          </div>
-  
-          <button class="add-option bg-green-500 text-white px-4 py-2 mt-3 rounded hover:bg-green-600">
-              + Add Option
-          </button>
-      `;
-  
-    // Remove Option functionality
-    questionBox.querySelectorAll(".remove-option").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        this.parentElement.remove();
-      });
-    });
-  
-    // Add Option functionality
-    questionBox
-      .querySelector(".add-option")
-      .addEventListener("click", function () {
-        const optionsContainer = questionBox.querySelector(".options-container");
-        const optionDiv = document.createElement("div");
-        optionDiv.classList.add("flex", "mt-2");
-        optionDiv.innerHTML = `
-              <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="New Option">
-              <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">X</button>
-          `;
-        optionsContainer.appendChild(optionDiv);
-  
-        optionDiv
-          .querySelector(".remove-option")
-          .addEventListener("click", function () {
-            optionDiv.remove();
-          });
-      });
-  
-    document.getElementById("question-container").appendChild(questionBox);
+  // Fetch document details
+  let title =
+    document.getElementById("doc-title").value.trim() || "Math Questions";
+  let author =
+    document.getElementById("doc-author").value.trim() || "Unknown Author";
+  let date =
+    document.getElementById("doc-date").value ||
+    new Date().toISOString().split("T")[0];
+
+  // Convert to camel case (remove spaces, capitalize words)
+  function toCamelCase(str) {
+    return str
+      .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters
+      .split(" ")
+      .map((word, index) =>
+        index === 0
+          ? word.toLowerCase()
+          : word.charAt(0).toUpperCase() + word.slice(1)
+      )
+      .join("");
   }
 
+  title = toCamelCase(title);
+  author = toCamelCase(author);
+
+  return `${title}_${author}_${date}.${fileType}`;
+}
 
 document.addEventListener("DOMContentLoaded", async function () {
+  if (window.scriptLoaded) return; // 🔥 Prevents duplicate execution
+  window.scriptLoaded = true;
+
+  console.log("Script Loaded Successfully! ✅");
+
   const questionContainer = document.getElementById("question-container");
   const addQuestionButton = document.getElementById("add-question");
   const undoActionButton = document.getElementById("undo-action");
+  const exportJsonButton = document.getElementById("export-json");
+  const exportLatexButton = document.getElementById("export-latex");
+  const exportPdfButton = document.getElementById("export-pdf");
   const statusMessage = document.getElementById("status-message");
 
   let questionHistory = []; // Stores deleted questions for undo
+  let ckeditors = []; // Global list to track CKEditor instances
+
+
 
   // 🟢 Function to show status messages
   function showStatusMessage(message, type = "success") {
@@ -146,7 +58,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     setTimeout(() => statusMessage.classList.add("hidden"), 3000);
   }
 
-  // 🟢 Function to create a new question block
   function createQuestionBlock(questionData = null) {
     const questionBox = document.createElement("div");
     questionBox.classList.add(
@@ -158,139 +69,212 @@ document.addEventListener("DOMContentLoaded", async function () {
       "mt-4",
       "relative"
     );
-
+  
     questionBox.innerHTML = `
-            <label class="block text-gray-700 font-medium">📝 Question:</label>
-            <textarea class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 mt-2 question-input">${
-              questionData ? questionData.question : ""
-            }</textarea>
+          <!-- 🗑️ Delete Question Button -->
+          <button class="delete-question absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full hover:bg-red-600 transition">
+              🗑️
+          </button>
 
-            <label class="block text-gray-700 font-medium mt-2">🔹 Difficulty Level:</label>
-            <select class="w-full p-2 border border-gray-300 rounded-md mt-1 difficulty">
-                <option value="easy" ${
-                  questionData && questionData.difficulty === "easy"
-                    ? "selected"
-                    : ""
-                }>Easy</option>
-                <option value="medium" ${
-                  questionData && questionData.difficulty === "medium"
-                    ? "selected"
-                    : ""
-                }>Medium</option>
-                <option value="hard" ${
-                  questionData && questionData.difficulty === "hard"
-                    ? "selected"
-                    : ""
-                }>Hard</option>
-            </select>
 
-            <label class="block text-gray-700 font-medium mt-2">🔹 Options:</label>
-            <div class="options-container mt-2 space-y-2">
-                ${
-                  questionData
-                    ? questionData.options
-                        .map(
-                          (option) => `
-                    <div class="flex">
-                        <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" value="${option}">
-                        <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">❌</button>
-                    </div>`
-                        )
-                        .join("")
-                    : `
-                    <div class="flex">
-                        <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="Option A">
-                        <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">❌</button>
-                    </div>
-                    <div class="flex">
-                        <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="Option B">
-                        <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">❌</button>
-                    </div>
-                `
-                }
-            </div>
+  
+          <label class="block text-gray-700 font-medium">Enter Question (Supports LaTeX & Images):</label>
+          <div class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 mt-2 question-input ck-question">${
+            questionData ? questionData.question : ""
+          }</div>
+  
+          <div class="mt-2">
+              <input type="file" class="question-image hidden" accept="image/*">
+              <button class="upload-question-image bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">📷 Upload Image</button>
+              <div class="question-image-preview mt-2"></div>
+          </div>
+  
+          <label class="block text-gray-700 font-medium mt-2">Difficulty Level:</label>
+          <select class="w-full p-2 border border-gray-300 rounded-md mt-1 difficulty">
+              <option value="easy" ${
+                questionData && questionData.difficulty === "easy" ? "selected" : ""
+              }>Easy</option>
+              <option value="medium" ${
+                questionData && questionData.difficulty === "medium" ? "selected" : ""
+              }>Medium</option>
+              <option value="hard" ${
+                questionData && questionData.difficulty === "hard" ? "selected" : ""
+              }>Hard</option>
+          </select>
+  
+          <label class="block text-gray-700 font-medium mt-2">Options (Text or Image):</label>
+  
+          <div class="options-container mt-2 space-y-2">
+              ${
+                questionData
+                  ? questionData.options
+                      .map(
+                        (option, i) => `
+                  <div class="flex items-center space-x-2">
+                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input ck-option w-full" value="${
+                        option.text || ""
+                      }">
+                      <input type="file" class="option-image hidden" accept="image/*">
+                      <button class="upload-option-image bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">📷</button>
+                      <div class="option-image-preview">${
+                        option.image
+                          ? `<img src="${option.image}" class="w-16 h-16 object-cover">
+                             <button class="remove-option-image bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">🗑️</button>`
+                          : ""
+                      }</div>
+                      <button class="remove-option bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">❌</button>
+                  </div>`
+                      )
+                      .join("")
+                  : `
+                  <div class="flex items-center space-x-2">
+                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input ck-option w-full" placeholder="Option A">
+                      <input type="file" class="option-image hidden" accept="image/*">
+                      <button class="upload-option-image bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">📷</button>
+                      <div class="option-image-preview"></div>
+                      <button class="remove-option bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">❌</button>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                      <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input ck-option w-full" placeholder="Option B">
+                      <input type="file" class="option-image hidden" accept="image/*">
+                      <button class="upload-option-image bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">📷</button>
+                      <div class="option-image-preview"></div>
+                      <button class="remove-option bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">❌</button>
+                  </div>
+              `
+              }
+          </div>
+  
+          <button class="add-option bg-green-500 text-white px-4 py-2 mt-3 rounded hover:bg-green-600">+ Add Option</button>
+      `;
 
-            <button class="add-option bg-green-500 text-white px-4 py-2 mt-3 rounded hover:bg-green-600">➕ Add Option</button>
-            <button class="remove-question bg-danger text-white px-4 py-2 mt-3 rounded hover:bg-red-600 absolute top-2 right-2">🗑️ Delete</button>
-        `;
 
-    // 🟢 Attach Event Listeners
-    // Remove option dynamically
-    questionBox.querySelectorAll(".remove-option").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        this.parentElement.remove();
+// // 🟢 FIX: Ensure MathQuill is loaded before initializing
+// setTimeout(() => {
+//   if (typeof MathQuill !== "undefined") {
+//       console.log("✅ Initializing MathQuill...");
+//       const MQ = MathQuill.getInterface(2);
+//       const mathFieldElement = questionBox.querySelector(".math-field");
+//       MQ.MathField(mathFieldElement, {
+//           spaceBehavesLikeTab: true,
+//           handlers: {
+//               edit: function () {
+//                   console.log("User input equation:", mathFieldElement.textContent);
+//               }
+//           }
+//       });
+//   } else {
+//       console.error("❌ MathQuill failed to initialize.");
+//   }
+// }, 200); // Short delay to avoid race conditions
+  
+    // 🟢 Attach Delete Question Button Event
+    questionBox.querySelector(".delete-question").addEventListener("click", function () {
+      questionHistory.push(questionBox.outerHTML);
+      questionBox.remove();
+      showStatusMessage("❌ Question deleted! Click 'Undo' to restore.", "error");
+    });
+  
+    // 🟢 Handle image upload for questions
+    questionBox.querySelector(".upload-question-image").addEventListener("click", function () {
+      questionBox.querySelector(".question-image").click();
+    });
+  
+    questionBox.querySelector(".question-image").addEventListener("change", function (event) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        questionBox.querySelector(".question-image-preview").innerHTML = `<img src="${e.target.result}" class="w-24 h-24 object-cover">`;
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    });
+  
+    // 🟢 Add Option Button Functionality
+    questionBox.querySelector(".add-option").addEventListener("click", function () {
+      const optionsContainer = questionBox.querySelector(".options-container");
+      const optionDiv = document.createElement("div");
+      optionDiv.classList.add("flex", "items-center", "space-x-2", "mt-2");
+      optionDiv.innerHTML = `
+        <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="New Option">
+        <input type="file" class="option-image hidden" accept="image/*">
+        <button class="upload-option-image bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">📷</button>
+        <div class="option-image-preview"></div>
+        <button class="remove-option bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">❌</button>
+      `;
+      optionsContainer.appendChild(optionDiv);
+  
+      // 🟢 Attach Remove Option event
+      optionDiv.querySelector(".remove-option").addEventListener("click", function () {
+        optionDiv.remove();
+      });
+  
+      // 🟢 Attach image upload event
+      optionDiv.querySelector(".upload-option-image").addEventListener("click", function () {
+        optionDiv.querySelector(".option-image").click();
+      });
+  
+      optionDiv.querySelector(".option-image").addEventListener("change", function (event) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          optionDiv.querySelector(".option-image-preview").innerHTML = `
+            <img src="${e.target.result}" class="w-16 h-16 object-cover">
+            <button class="remove-option-image bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">🗑️</button>
+          `;
+  
+          // 🟢 Attach event listener to remove image
+          optionDiv.querySelector(".remove-option-image").addEventListener("click", function () {
+            optionDiv.querySelector(".option-image-preview").innerHTML = "";
+          });
+        };
+        reader.readAsDataURL(event.target.files[0]);
       });
     });
 
-    // Add option dynamically
-    questionBox
-      .querySelector(".add-option")
-      .addEventListener("click", function () {
-        const optionsContainer =
-          questionBox.querySelector(".options-container");
-        const optionDiv = document.createElement("div");
-        optionDiv.classList.add("flex", "mt-2");
-        optionDiv.innerHTML = `
-                <input type="text" class="w-full p-2 border border-gray-300 rounded-md option-input" placeholder="New Option">
-                <button class="remove-option bg-red-500 text-white px-3 py-1 ml-2 rounded hover:bg-red-600">❌</button>
-            `;
-        optionsContainer.appendChild(optionDiv);
 
-        optionDiv
-          .querySelector(".remove-option")
-          .addEventListener("click", function () {
-            optionDiv.remove();
-          });
+  
+    document.getElementById("question-container").appendChild(questionBox);
+
+    
+
+    setTimeout(() => {
+      ClassicEditor
+        .create(questionBox.querySelector('.ck-question'), {
+          toolbar: ['bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'math', 'undo', 'redo'],
+          math: {
+            engine: 'mathjax',
+            outputType: 'span',
+            forceOutputType: false
+          }
+        })
+        .then(editor => {
+          ckeditors.push({ type: 'question', editor, container: questionBox });
+        })
+        .catch(error => console.error(error));
+    
+      questionBox.querySelectorAll('.ck-option').forEach((optionDiv, i) => {
+        ClassicEditor
+          .create(optionDiv, {
+            toolbar: ['bold', 'italic', 'link', '|', 'math', 'undo', 'redo'],
+            math: {
+              engine: 'mathjax',
+              outputType: 'span',
+            }
+          })
+          .then(editor => {
+            ckeditors.push({ type: 'option', editor, container: questionBox, index: i });
+          })
+          .catch(error => console.error(error));
       });
-
-    // 🟢 Remove question dynamically
-    questionBox
-      .querySelector(".remove-question")
-      .addEventListener("click", function () {
-        questionHistory.push(questionBox.outerHTML); // Store for undo
-        questionBox.remove();
-        showStatusMessage(
-          "❌ Question deleted! Click 'Undo' to restore.",
-          "error"
-        );
-      });
-
-    questionContainer.appendChild(questionBox);
+    }, 100);
+    
+    
   }
 
-  // 🟢 Add question button functionality
-  addQuestionButton.addEventListener("click", function () {
-    createQuestionBlock();
-    showStatusMessage("✅ Question added!");
-  });
 
-  // 🟢 Undo Last Action
-  undoActionButton.addEventListener("click", function () {
-    if (questionHistory.length > 0) {
-      const lastDeletedQuestion = questionHistory.pop();
-      questionContainer.insertAdjacentHTML("beforeend", lastDeletedQuestion);
-      showStatusMessage("🔄 Last action undone!");
-    } else {
-      showStatusMessage("⚠️ No action to undo!", "error");
-    }
-  });
-
-  // 🟢 Load saved progress
-  // const savedData = JSON.parse(localStorage.getItem("savedQuestions"));
-  // if (savedData) {
-  //     document.getElementById("doc-title").value = savedData.title || "";
-  //     document.getElementById("doc-author").value = savedData.author || "";
-  //     document.getElementById("doc-date").value = savedData.date || "";
-  //     savedData.questions.forEach((questionData) => createQuestionBlock(questionData));
-  // } else {
-  //     // 🟢 Ensure only ONE default question on first load
-  //     if (document.querySelectorAll(".question-box").length === 0) {
-  //         createQuestionBlock();
-  //     }
-  // }
+  
+  
+  
   const savedData = JSON.parse(localStorage.getItem("savedQuestions"));
   if (savedData && savedData.questions.length > 0) {
-    // Load saved questions only if they exist
     document.getElementById("doc-title").value = savedData.title || "";
     document.getElementById("doc-author").value = savedData.author || "";
     document.getElementById("doc-date").value = savedData.date || "";
@@ -298,206 +282,119 @@ document.addEventListener("DOMContentLoaded", async function () {
       createQuestionBlock(questionData)
     );
   } else {
-    // Ensure only ONE default question appears
-    questionContainer.innerHTML = ""; // Remove all existing elements
-    createQuestionBlock();
-  }
-});
-
-document.getElementById("save-progress").addEventListener("click", async function () {
-  const title = document.getElementById("doc-title").value.trim();
-  const author = document.getElementById("doc-author").value.trim();
-  const date = document.getElementById("doc-date").value;
-
-  const questions = [];
-  document.querySelectorAll(".question-box").forEach((questionBox) => {
-    const questionText = questionBox
-      .querySelector(".question-input")
-      .value.trim();
-    const difficulty = questionBox.querySelector(".difficulty").value;
-    const options = [];
-
-    questionBox.querySelectorAll(".option-input").forEach((input) => {
-      options.push(input.value.trim());
-    });
-
-    questions.push({ question: questionText, difficulty, options });
-  });
-
-  const dataToSave = {
-    title,
-    author,
-    date,
-    questions,
-  };
-
-  localStorage.setItem("savedQuestions", JSON.stringify(dataToSave));
-  alert("✅ Progress Saved!");
-});
-
-// 📌 Load saved progress when page loads
-// document.addEventListener("DOMContentLoaded", async function () {
-//   const savedData = JSON.parse(localStorage.getItem("savedQuestions"));
-
-//   if (savedData) {
-//     document.getElementById("doc-title").value = savedData.title || "";
-//     document.getElementById("doc-author").value = savedData.author || "";
-//     document.getElementById("doc-date").value = savedData.date || "";
-
-//     savedData.questions.forEach((questionData) => {
-//       createQuestionBlock(questionData);
-//     });
-//   } else {
-//     createQuestionBlock(); // Add one question by default
-//   }
-// });
-
-document.getElementById("reset-page").addEventListener("click", async function () {
-  if (
-    confirm(
-      "⚠️ Are you sure you want to reset everything? This action cannot be undone."
-    )
-  ) {
-    localStorage.removeItem("savedQuestions"); // Clear saved progress
-    document.getElementById("doc-title").value = "";
-    document.getElementById("doc-author").value = "";
-    document.getElementById("doc-date").value = "";
-
-    // Remove all question boxes
-    const questionContainer = document.getElementById("question-container");
     questionContainer.innerHTML = "";
-
-    // Add a single default question
     createQuestionBlock();
-
-    showStatusMessage("🔄 Page reset successfully!", "success");
   }
-});
 
-// 📌 Export LaTeX
-document.getElementById("export-latex").addEventListener("click", async function () {
-  console.log("Exporting LaTeX..."); // Debugging
-  const title =
-    document.getElementById("doc-title").value.trim() || "Math Questions";
-  const author =
-    document.getElementById("doc-author").value.trim() || "Unknown Author";
-  const date =
-    document.getElementById("doc-date").value ||
-    new Date().toISOString().split("T")[0];
-
-  let latexContent = `
-\\documentclass[12pt]{article}
-\\usepackage{amsmath}
-\\usepackage{amssymb}
-\\usepackage{enumitem}
-\\usepackage[margin=1in]{geometry} % Set margins to 1 inch
-\\usepackage{tikz}
-\\usepackage{everypage} % Allows drawing on every page
-\\usepackage[a4paper, margin=1in]{geometry} % Adjust margins if needed
-
-% Define padding (adjust this value to change the padding)
-\\newcommand{\\borderpadding}{1cm} % Increase this value for more padding
-
-% Apply border to all pages
-\\AddEverypageHook{%
-    \\begin{tikzpicture}[remember picture, overlay]
-        \\draw[line width=1pt] 
-            ([xshift=\\borderpadding, yshift=\\borderpadding] current page.south west) 
-            rectangle 
-            ([xshift=-\\borderpadding, yshift=-\\borderpadding] current page.north east);
-    \\end{tikzpicture}
-}
-
-\\title{${title}}
-\\author{${author}}
-\\date{${date}}
-\\begin{document}
-\\maketitle
-\\begin{enumerate}
-`;
-
-  // Find all question boxes dynamically
-  const questionBoxes = document.querySelectorAll(".question-box");
-
-  console.log("Found question boxes:", questionBoxes.length); // Debugging
-
-  questionBoxes.forEach((questionBox, index) => {
-    let questionText = questionBox
-      .querySelector(".question-input")
-      .value.trim();
-    let difficulty = questionBox.querySelector(".difficulty").value;
-    let options = [];
-
-    questionBox.querySelectorAll(".option-input").forEach((input) => {
-      let optionValue = input.value.trim();
-      if (optionValue) options.push(optionValue);
+  // 🟢 Add question button functionality
+  if (addQuestionButton) {
+    addQuestionButton.addEventListener("click", function () {
+      console.log("Adding new question..."); // Debugging log
+      createQuestionBlock(); // Ensure function exists
+      showStatusMessage("✅ Question added!");
     });
+  } else {
+    console.error("❌ 'Add Question' button not found!");
+  }
 
-    console.log(`Question ${index + 1}:`, questionText, "Options:", options); // Debugging
+  // 🟢 Undo Last Action (Fixed)
+  undoActionButton.addEventListener("click", function () {
+    if (questionHistory.length > 0) {
+      const lastDeletedQuestionHTML = questionHistory.pop();
+      questionContainer.insertAdjacentHTML(
+        "beforeend",
+        lastDeletedQuestionHTML
+      );
+      showStatusMessage("🔄 Last action undone!");
 
-    if (questionText !== "") {
-      latexContent += `
-    \\item \\textbf{Question:} ${questionText} \\textbf{(${difficulty.toUpperCase()})}
-
-    \\textbf{Options:}
-    \\begin{enumerate}[label=(\\alph*)]
-`;
-
-      options.forEach((option) => {
-        latexContent += `        \\item ${option}\n`;
-      });
-
-      latexContent += `    \\end{enumerate}\n`;
-
-      //             // Example Solution Section
-      //             latexContent += `
-      //     \\textbf{Solution:}
-      //     \\begin{itemize}
-      //         \\item Add your solution steps here...
-      //     \\end{itemize}
-      // `;
+      // Re-bind event listeners for the newly added question
+      document.querySelectorAll(".remove-question").forEach((btn) =>
+        btn.addEventListener("click", function () {
+          this.parentElement.remove();
+          showStatusMessage(
+            "❌ Question deleted! Click 'Undo' to restore.",
+            "error"
+          );
+        })
+      );
+    } else {
+      showStatusMessage("⚠️ No action to undo!", "error");
     }
   });
 
-  latexContent += `
-\\end{enumerate}
-\\end{document}
-`;
+  // 🟢 Fix for Export Buttons (Prevent Double Clicks)
+  function removeExistingEventListeners(buttonId) {
+    const oldButton = document.getElementById(buttonId);
+    const newButton = oldButton.cloneNode(true);
+    oldButton.parentNode.replaceChild(newButton, oldButton);
+    return newButton;
+  }
 
-  console.log("Generated LaTeX Content:", latexContent); // Debugging
+  removeExistingEventListeners("export-json").addEventListener(
+    "click",
+    function () {
+      console.log("Exporting JSON...");
 
-  // Create and download .tex file
-  const blob = new Blob([latexContent], { type: "text/plain" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = generateFileName("tex");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
+      const title =
+        document.getElementById("doc-title").value.trim() ||
+        "Untitled Document";
+      const author =
+        document.getElementById("doc-author").value.trim() || "Unknown Author";
+      const date =
+        document.getElementById("doc-date").value ||
+        new Date().toISOString().split("T")[0];
 
-// 📌 Export PDF
-document.getElementById("export-pdf").addEventListener("click", async function () {
-    try {
-      // Load the PDF template
-      const templateUrl = "template.pdf"; // Ensure template.pdf is in the same directory
-      const existingPdfBytes = await fetch(templateUrl).then((res) =>
-        res.arrayBuffer()
-      );
+        const questions = [];
+        const grouped = {};
+        
+        ckeditors.forEach(entry => {
+          const id = entry.container.dataset.qid || entry.container;
+          if (!grouped[id]) grouped[id] = { options: [], container: entry.container };
+        
+          const data = entry.editor.getData().trim();
+          if (entry.type === 'question') {
+            grouped[id].question = data;
+          } else {
+            grouped[id].options[entry.index] = data;
+          }
+        });
+        
+        Object.values(grouped).forEach((q, index) => {
+          const difficulty = q.container.querySelector('.difficulty').value || 'medium';
+          questions.push({
+            question_number: index + 1,
+            question_type: difficulty,
+            question: q.question,
+            options: q.options
+          });
+        });
+        
 
-      // Load the PDF using pdf-lib
-      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-      const firstPage = pdfDoc.getPages()[0]; // Modify the first page
+      const jsonData = {
+        document_name: title,
+        author: author,
+        date: date,
+        questions: questions,
+      };
 
-      // Define starting positions for writing
-      let y = 700; // Y-position (top-down coordinate system)
+      console.log("Generated JSON:", jsonData); // Debugging
+      const blob = new Blob([JSON.stringify(jsonData, null, 4)], {
+        type: "application/json",
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${title}_${author}_${date}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  );
 
-      // Set font
-      const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-      firstPage.setFont(font);
-      firstPage.setFontSize(12);
+  removeExistingEventListeners("export-latex").addEventListener(
+    "click",
+    function () {
+      console.log("Exporting LaTeX...");
 
-      // Fetch document metadata (Title, Author, Date)
       const title =
         document.getElementById("doc-title").value.trim() || "Math Questions";
       const author =
@@ -506,21 +403,28 @@ document.getElementById("export-pdf").addEventListener("click", async function (
         document.getElementById("doc-date").value ||
         new Date().toISOString().split("T")[0];
 
-      // Add metadata to the PDF
-      firstPage.drawText(`Title: ${title}`, { x: 50, y: y });
-      firstPage.drawText(`Author: ${author}`, { x: 50, y: y - 20 });
-      firstPage.drawText(`Date: ${date}`, { x: 50, y: y - 40 });
-      y -= 80;
+      let latexContent = `
+  \\documentclass[12pt]{article}
+  \\usepackage{amsmath}
+  \\usepackage{amssymb}
+  \\usepackage{enumitem}
+  \\usepackage[margin=1in]{geometry}
+  \\title{${title}}
+  \\author{${author}}
+  \\date{${date}}
+  \\begin{document}
+  \\maketitle
+  \\begin{enumerate}
+  `;
 
-      // Loop through questions
       document
         .querySelectorAll(".question-box")
         .forEach((questionBox, index) => {
-          const questionText = questionBox
+          let questionText = questionBox
             .querySelector(".question-input")
             .value.trim();
-          const difficulty = questionBox.querySelector(".difficulty").value;
-          const options = [];
+          let difficulty = questionBox.querySelector(".difficulty").value;
+          let options = [];
 
           questionBox.querySelectorAll(".option-input").forEach((input) => {
             let optionValue = input.value.trim();
@@ -528,172 +432,219 @@ document.getElementById("export-pdf").addEventListener("click", async function (
           });
 
           if (questionText !== "") {
-            // Write question
-            firstPage.drawText(
-              `${index + 1}. ${questionText} (${difficulty.toUpperCase()})`,
-              { x: 50, y: y }
-            );
-
-            y -= 20;
-            options.forEach((option, i) => {
-              firstPage.drawText(`(${String.fromCharCode(97 + i)}) ${option}`, {
-                x: 70,
-                y: y,
-              });
-              y -= 15;
+            latexContent += `
+          \\item \\textbf{Question:} ${questionText} \\textbf{(${difficulty.toUpperCase()})}
+          \\begin{enumerate}[label=(\\alph*)]
+          `;
+            options.forEach((option) => {
+              latexContent += `\\item ${option}\n`;
             });
-
-            y -= 20;
-
-            // Add a new page if space is running out
-            if (y < 50) {
-              const newPage = pdfDoc.addPage([595, 842]); // A4 size
-              y = 750;
-            }
+            latexContent += `\\end{enumerate}\n`;
           }
         });
 
-      // Save & download the modified PDF
-      const modifiedPdfBytes = await pdfDoc.save();
-      const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
+      latexContent += `\\end{enumerate}\\end{document}`;
+      console.log("Generated LaTeX Content:", latexContent); // Debugging
+      const blob = new Blob([latexContent], { type: "text/plain" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = generateFileName("pdf");
+      link.download = `${title}_${author}_${date}.tex`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("❌ Failed to generate PDF. Please check the template file.");
     }
-  });
+  );
 
-// 📌 Export json
-document.getElementById("export-json").addEventListener("click", async function () {
-  // Get document metadata (title, author, date)
-  const title =
-    document.getElementById("doc-title").value.trim() || "Untitled Document";
-  const author =
-    document.getElementById("doc-author").value.trim() || "Unknown Author";
-  const date =
-    document.getElementById("doc-date").value ||
-    new Date().toISOString().split("T")[0];
-
-  // Collect all questions
-  const questions = [];
-  document.querySelectorAll(".question-box").forEach((questionBox, index) => {
-    const questionText = questionBox
-      .querySelector(".question-input")
-      .value.trim();
-    const difficulty = questionBox.querySelector(".difficulty").value;
-    const options = [];
-
-    questionBox.querySelectorAll(".option-input").forEach((input) => {
-      let optionValue = input.value.trim();
-      if (optionValue) options.push(optionValue);
-    });
-
-    // Add question to JSON only if it has text
-    if (questionText !== "") {
-      questions.push({
-        question_number: index + 1,
-        question_type: difficulty,
-        question: questionText,
-        options: options,
-      });
+ 
+  removeExistingEventListeners("export-pdf").addEventListener(
+    "click",
+    async function () {
+      console.log("Exporting PDF...");
+      try {
+        const { PDFDocument, rgb } = PDFLib; // Use PDF-Lib instead of jsPDF
+  
+        // Load the existing PDF template
+        const templateBytes = await fetch("template.pdf").then((res) =>
+          res.arrayBuffer()
+        );
+        const pdfDoc = await PDFDocument.create();
+        const templateDoc = await PDFDocument.load(templateBytes);
+  
+        // Embed the first page of the template
+        const [embeddedPage] = await pdfDoc.embedPages(templateDoc.getPages());
+  
+        // Get page dimensions
+        const pageWidth = embeddedPage.width;
+        const pageHeight = embeddedPage.height;
+  
+        // Retrieve document metadata
+        const docTitle = document.getElementById("doc-title").value.trim() || "Untitled Document";
+        const docAuthor = document.getElementById("doc-author").value.trim() || "Unknown Author";
+        const docDate = document.getElementById("doc-date").value || new Date().toISOString().split("T")[0];
+  
+        // First Page - Create a new page using the template
+        let newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        newPage.drawPage(embeddedPage, { x: 0, y: 0 });
+  
+        // Centered positions
+        const centerX = pageWidth / 2;
+        let textY = pageHeight - 100; // Adjusted for template padding
+  
+        // Draw the document title, author, and date centered
+        newPage.drawText(docTitle, {
+          x: centerX - (docTitle.length * 3), // Approximate centering
+          y: textY,
+          size: 16,
+          color: rgb(0, 0, 0),
+        });
+  
+        textY -= 25; // Move down for author
+        newPage.drawText(`Author: ${docAuthor}`, {
+          x: centerX - (docAuthor.length * 3),
+          y: textY,
+          size: 12,
+          color: rgb(0, 0, 0),
+        });
+  
+        textY -= 25; // Move down for date
+        newPage.drawText(`Date: ${docDate}`, {
+          x: centerX - (docDate.length * 3),
+          y: textY,
+          size: 12,
+          color: rgb(0, 0, 0),
+        });
+  
+        // Adjust Y position for first question
+        let y = textY - 50;
+  
+        // Iterate through questions
+        document.querySelectorAll(".question-box").forEach((questionBox, index) => {
+          const questionText = questionBox.querySelector(".question-input").value.trim();
+          const difficulty = questionBox.querySelector(".difficulty").value;
+          const options = [];
+  
+          questionBox.querySelectorAll(".option-input").forEach((input) => {
+            let optionValue = input.value.trim();
+            if (optionValue) options.push(optionValue);
+          });
+  
+          // Add a new page if needed
+          if (y < 100) {
+            newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+            newPage.drawPage(embeddedPage, { x: 0, y: 0 });
+            y = pageHeight - 150;
+          }
+  
+          // Draw question text
+          newPage.drawText(`${index + 1}. ${questionText} (${difficulty.toUpperCase()})`, {
+            x: 50,
+            y: y,
+            size: 12,
+            color: rgb(0, 0, 0),
+          });
+  
+          y -= 20;
+  
+          // Draw options
+          options.forEach((option, i) => {
+            newPage.drawText(`(${String.fromCharCode(97 + i)}) ${option}`, {
+              x: 70,
+              y: y,
+              size: 10,
+              color: rgb(0, 0, 0),
+            });
+            y -= 15;
+          });
+  
+          y -= 10;
+        });
+  
+        // Save and download the PDF
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${docTitle}_${docAuthor}_${docDate}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+  
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        alert("❌ Failed to generate PDF.");
+      }
     }
-  });
+  );
+  
+  
+  
+  document
+    .getElementById("save-progress")
+    .addEventListener("click", async function () {
+      const title = document.getElementById("doc-title").value.trim();
+      const author = document.getElementById("doc-author").value.trim();
+      const date = document.getElementById("doc-date").value;
 
-  // Prepare final JSON structure
-  const jsonData = {
-    document_name: title,
-    author: author,
-    date: date,
-    questions: questions,
-  };
+const questions = [];
+const grouped = {};
 
-  console.log("Generated JSON:", jsonData); // Debugging
+ckeditors.forEach(entry => {
+  const id = entry.container.dataset.qid || entry.container;
+  if (!grouped[id]) grouped[id] = { options: [], container: entry.container };
 
-  // Convert JSON to file and trigger download
-  const blob = new Blob([JSON.stringify(jsonData, null, 4)], {
-    type: "application/json",
-  });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = generateFileName("json");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const data = entry.editor.getData().trim();
+
+  if (entry.type === 'question') {
+    grouped[id].question = data;
+  } else {
+    grouped[id].options[entry.index] = data;
+  }
 });
 
-// 📌 Export PDF using jsPDF
-// document.getElementById("export-pdf").addEventListener("click", async function () {
+Object.values(grouped).forEach((q, index) => {
+  const difficulty = q.container.querySelector('.difficulty').value || 'medium';
+  questions.push({
+    question_number: index + 1,
+    question_type: difficulty,
+    question: q.question,
+    options: q.options
+  });
+});
 
-//     console.log("Exporting PDF...   1"); // Debugging
-//     const { jsPDF } = window.jspdf;
 
-//     // Load the pre-existing PDF template
-//     const templateUrl = "template.pdf"; // Make sure "template.pdf" is in the same directory
-//     const templateArrayBuffer = await fetch(templateUrl).then((res) =>
-//       res.arrayBuffer()
-//     );
+     
+      const dataToSave = {
+        title,
+        author,
+        date,
+        questions,
+      };
 
-//     // Load the template using pdf-lib
-//     const pdfDoc = await PDFLib.PDFDocument.load(templateArrayBuffer);
-//     const pages = pdfDoc.getPages();
-//     const firstPage = pages[0]; // Assuming we want to modify the first page
+      localStorage.setItem("savedQuestions", JSON.stringify(dataToSave));
+      alert("✅ Progress Saved!");
+    });
 
-//     // Set up jsPDF to overlay text
-//     const pdf = new jsPDF({
-//       orientation: "portrait",
-//       unit: "mm",
-//       format: "a4",
-//     });
+  document
+    .getElementById("reset-page")
+    .addEventListener("click", async function () {
+      if (
+        confirm(
+          "⚠️ Are you sure you want to reset everything? This action cannot be undone."
+        )
+      ) {
+        localStorage.removeItem("savedQuestions"); // Clear saved progress
+        document.getElementById("doc-title").value = "";
+        document.getElementById("doc-author").value = "";
+        document.getElementById("doc-date").value = "";
 
-//     const templateBytes = await pdfDoc.save();
-//     const templateBase64 = btoa(
-//       String.fromCharCode(...new Uint8Array(templateBytes))
-//     );
-//     const templateDataUri = `data:application/pdf;base64,${templateBase64}`;
+        // Remove all question boxes
+        const questionContainer = document.getElementById("question-container");
+        questionContainer.innerHTML = "";
 
-//     pdf.addImage(templateDataUri, "PDF", 0, 0, 210, 297);
+        // Add a single default question
+        createQuestionBlock();
 
-//     let y = 50; // Start writing below the template's header
-
-//     // Loop through all questions
-//     document.querySelectorAll(".question-box").forEach((questionBox, index) => {
-//       const questionText = questionBox.querySelector("textarea").value;
-//       const difficulty = questionBox.querySelector("select").value;
-//       const options = [];
-
-//       questionBox
-//         .querySelectorAll(".options-container input")
-//         .forEach((input) => {
-//           options.push(input.value);
-//         });
-
-//       pdf.setFontSize(12);
-//       pdf.text(
-//         `${index + 1}. ${questionText} (${difficulty.toUpperCase()})`,
-//         10,
-//         y
-//       );
-//       y += 10;
-
-//       options.forEach((option, i) => {
-//         pdf.text(`(${String.fromCharCode(97 + i)}) ${option}`, 15, y);
-//         y += 8;
-//       });
-
-//       y += 10;
-
-//       // Add new page if content overflows
-//       if (y > 270) {
-//         pdf.addPage();
-//         y = 20;
-//       }
-//     });
-
-//     // Save final PDF
-//     pdf.save("questions.pdf");
-//   });
+        showStatusMessage("🔄 Page reset successfully!", "success");
+      }
+    });
+});
