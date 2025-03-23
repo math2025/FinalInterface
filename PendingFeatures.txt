@@ -1,9 +1,0 @@
-delete buttons functionality is gone should fix them
-
-Math equation binding 
-
-
-add page numbers to pdf exported dynamically
-
-
-option delete and image features are not working for default option A and option B
