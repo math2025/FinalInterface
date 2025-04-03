@@ -1,50 +1,41 @@
-// init.js
-
-document.addEventListener("DOMContentLoaded", async function () {
+document.addEventListener("DOMContentLoaded", function () {
   if (window.scriptLoaded) return;
   window.scriptLoaded = true;
 
   console.log("✅ App Initialized");
 
-  // Element references
-  const questionContainer = document.getElementById("question-container");
-  const addQuestionButton = document.getElementById("add-question");
-  const undoActionButton = document.getElementById("undo-action");
-  const saveButton = document.getElementById("save-progress");
-  const resetButton = document.getElementById("reset-page");
-
-  // Load saved questions
+  // Load previously saved questions
   loadSavedQuestions();
 
-  // Add default question if none loaded
+  // Add one default question block if none exist
+  const questionContainer = document.getElementById("question-container");
   if (questionContainer.children.length === 0) {
     createQuestionBlock();
   }
 
-  // Add new question
-  addQuestionButton?.addEventListener("click", () => {
+  // Button actions
+  document.getElementById("add-question")?.addEventListener("click", () => {
     createQuestionBlock();
     showStatusMessage("✅ Question added!");
   });
 
-  // Undo delete
-  undoActionButton?.addEventListener("click", () => {
+  document.getElementById("undo-action")?.addEventListener("click", () => {
     undoLastAction();
   });
 
-  // Save progress
-  saveButton?.addEventListener("click", () => {
+  document.getElementById("save-progress")?.addEventListener("click", () => {
     saveQuestionsToLocal();
     alert("✅ Progress Saved!");
   });
 
-  // Reset everything
-  resetButton?.addEventListener("click", () => {
+  document.getElementById("reset-page")?.addEventListener("click", () => {
     if (confirm("⚠️ Are you sure you want to reset everything?")) {
       resetAll();
     }
   });
 
-  // Export bindings
-  setupExportListeners();
+  // ✅ Initialize export functions
+  setupExportListeners();   // JSON
+  setupLatexExport();       // LaTeX
+  setupPdfExport();         // PDF
 });

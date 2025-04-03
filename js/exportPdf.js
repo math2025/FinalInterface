@@ -1,77 +1,129 @@
-// exportPdf.js
-
-function setupPdfExport() {
-  const exportPdfButton = document.getElementById("export-pdf");
+async function setupPdfExport() {
+  let exportPdfButton = document.getElementById("export-pdf");
   if (!exportPdfButton) return;
 
+  // Prevent duplicate listeners
+  const newButton = exportPdfButton.cloneNode(true);
+  exportPdfButton.parentNode.replaceChild(newButton, exportPdfButton);
+  exportPdfButton = newButton;
+
   exportPdfButton.addEventListener("click", async () => {
-    console.log("📄 Exporting PDF...");
-
+    console.log("📄 Exporting PDF with template...");
     try {
-      const { PDFDocument, rgb } = PDFLib;
+      const { PDFDocument, rgb, StandardFonts } = PDFLib;
 
-      // Create a new PDF
+      const templateBytes = await fetch("template.pdf").then((res) =>
+        res.arrayBuffer()
+      );
+      const templateDoc = await PDFDocument.load(templateBytes);
+      const [templatePage] = await templateDoc.getPages();
+
       const pdfDoc = await PDFDocument.create();
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const templatePageEmbed = await pdfDoc.embedPage(templatePage);
 
       const docTitle = document.getElementById("doc-title").value.trim() || "Untitled";
       const docAuthor = document.getElementById("doc-author").value.trim() || "Unknown";
       const docDate = document.getElementById("doc-date").value || new Date().toISOString().split("T")[0];
 
-      const page = pdfDoc.addPage([595, 842]); // A4 page size
-      let y = 800;
+      let pages = [];
+      let y = 720;
 
-      // Title block
-      page.drawText(docTitle, { x: 50, y, size: 18, color: rgb(0, 0, 0) });
-      y -= 25;
-      page.drawText(`Author: ${docAuthor}`, { x: 50, y, size: 12, color: rgb(0, 0, 0) });
-      y -= 20;
-      page.drawText(`Date: ${docDate}`, { x: 50, y, size: 12, color: rgb(0, 0, 0) });
-      y -= 30;
+      const addNewPage = () => {
+        const page = pdfDoc.addPage([595, 842]);
+        page.drawPage(templatePageEmbed);
+
+        const titleWidth = font.widthOfTextAtSize(docTitle, 16);
+        page.drawText(docTitle, {
+          x: (595 - titleWidth) / 2,
+          y: 790,
+          size: 16,
+          font,
+          color: rgb(0, 0, 0),
+        });
+
+        page.drawText(`Author: ${docAuthor}`, {
+          x: 50,
+          y: 770,
+          size: 11,
+          font,
+          color: rgb(0, 0, 0),
+        });
+
+        page.drawText(`Date: ${docDate}`, {
+          x: 420,
+          y: 770,
+          size: 11,
+          font,
+          color: rgb(0, 0, 0),
+        });
+
+        pages.push(page);
+        y = 720;
+        return page;
+      };
+
+      let currentPage = addNewPage();
 
       const grouped = {};
-
-      ckeditors.forEach(entry => {
+      tiptapEditors.forEach((entry) => {
         const id = entry.container.dataset.qid || entry.container;
-        if (!grouped[id]) grouped[id] = { options: [], container: entry.container };
+        if (!grouped[id])
+          grouped[id] = { options: [], container: entry.container };
 
-        const data = entry.editor.getData().trim().replace(/<[^>]+>/g, ''); // Remove HTML tags
-        if (entry.type === 'question') {
+        const data = stripHtml(entry.editor.getHTML());
+        if (entry.type === "question") {
           grouped[id].question = data;
         } else {
           grouped[id].options[entry.index] = data;
         }
       });
 
-      Object.values(grouped).forEach((q, index) => {
-        const difficulty = q.container.querySelector('.difficulty')?.value || 'medium';
+      let index = 1;
+      for (const q of Object.values(grouped)) {
+        const difficulty = q.container.querySelector(".difficulty")?.value || "medium";
         const question = q.question || "";
         const options = q.options || [];
 
-        if (y < 100) {
-          const newPage = pdfDoc.addPage([595, 842]);
-          y = 800;
-        }
+        const questionText = `${index}. ${question} (${difficulty})`;
 
-        page.drawText(`${index + 1}. ${question} (${difficulty})`, {
+        if (y < 120) currentPage = addNewPage();
+
+        currentPage.drawText(questionText, {
           x: 50,
           y,
           size: 12,
+          font,
           color: rgb(0, 0, 0),
         });
         y -= 20;
 
         options.forEach((opt, i) => {
           const label = String.fromCharCode(97 + i);
-          page.drawText(`   (${label}) ${opt}`, {
+          currentPage.drawText(`   (${label}) ${opt}`, {
             x: 70,
             y,
             size: 10,
+            font,
             color: rgb(0, 0, 0),
           });
           y -= 15;
         });
 
         y -= 10;
+        index++;
+      }
+
+      pages.forEach((page, i) => {
+        const footer = `Page ${i + 1}`;
+        const width = font.widthOfTextAtSize(footer, 10);
+        page.drawText(footer, {
+          x: (595 - width) / 2,
+          y: 30,
+          size: 10,
+          font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
       });
 
       const pdfBytes = await pdfDoc.save();
@@ -83,14 +135,18 @@ function setupPdfExport() {
       link.click();
       document.body.removeChild(link);
 
-      showStatusMessage("✅ PDF exported!");
-
+      showStatusMessage("✅ PDF exported with template!");
     } catch (err) {
-      console.error("PDF Export Error:", err);
-      alert("❌ Failed to export PDF");
+      console.error("❌ PDF Export Error:", err);
+      alert("Something went wrong while exporting PDF.");
     }
   });
 }
 
-// Call this in init.js
+function stripHtml(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent || div.innerText || "";
+}
+
 setupPdfExport();

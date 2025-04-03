@@ -1,5 +1,3 @@
-// utils.js
-
 // ✅ Generate clean file name from metadata
 function generateFileName(fileType) {
   let title = document.getElementById("doc-title").value.trim() || "MathQuestions";

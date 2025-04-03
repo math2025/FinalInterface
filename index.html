@@ -1,27 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Math Question Builder</title>
+
+  <!-- ✅ KaTeX for rendering LaTeX math -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <!-- ✅ Tiptap (Bundle via CDN for Vanilla JS) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.0.0-beta.221/dist/tiptap-core.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.0.0-beta.221/dist/tiptap-starter-kit.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.0.0-beta.221/dist/tiptap-extension-placeholder.min.js"></script>
 
   <!-- ✅ Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ✅ MathQuill -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
-
-  <!-- ✅ CKEditor 5 -->
-  <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
-
-  <!-- ✅ MathJax -->
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-  <!-- ✅ PDF-lib -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.16.0/pdf-lib.min.js"></script>
-
-  <!-- ✅ Custom Tailwind Config -->
+  <!-- 🔧 Tailwind Theme Config -->
   <script>
     tailwind.config = {
       theme: {
@@ -32,22 +29,49 @@
             accent: '#F59E0B',
             success: '#10B981',
             danger: '#EF4444',
-            darkBg: '#1F2937',
+            darkBg: '#1F2937'
           }
         }
       }
     };
   </script>
 
-  <!-- ✅ Modular Scripts -->
+  <!-- ✅ Your Project Scripts -->
   <script src="js/utils.js" defer></script>
-  <script src="js/editor.js" defer></script>
   <script src="js/questionManager.js" defer></script>
-  <script src="js/storage.js" defer></script>
+  <script src="js/editor.js" defer></script>
   <script src="js/exportJson.js" defer></script>
   <script src="js/exportLatex.js" defer></script>
   <script src="js/exportPdf.js" defer></script>
+  <script src="js/storage.js" defer></script>
   <script src="js/init.js" defer></script>
+
+  <style>
+    .tiptap {
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      outline: none;
+    }
+
+    .ProseMirror:focus {
+      outline: none;
+    }
+
+    .tiptap p {
+      margin: 0;
+    }
+
+    .math-block {
+      font-family: monospace;
+      background-color: #f9f9f9;
+      border-left: 4px solid #2563EB;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100 font-sans">
@@ -58,55 +82,41 @@
     <!-- Status Message -->
     <div id="status-message" class="hidden text-center mt-4 p-2 bg-green-100 text-green-700 rounded-lg"></div>
 
-    <!-- Metadata -->
+    <!-- Document Metadata -->
     <div class="mt-6 space-y-4">
       <div>
         <label class="block text-gray-700 font-medium">📌 Document Title:</label>
-        <input type="text" id="doc-title" class="w-full p-3 border border-gray-300 rounded-md mt-1" placeholder="Enter title...">
+        <input type="text" id="doc-title" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-primary mt-1" placeholder="Enter title...">
       </div>
       <div>
         <label class="block text-gray-700 font-medium">👤 Author:</label>
-        <input type="text" id="doc-author" class="w-full p-3 border border-gray-300 rounded-md mt-1" placeholder="Enter author name...">
+        <input type="text" id="doc-author" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-primary mt-1" placeholder="Enter author name...">
       </div>
       <div>
         <label class="block text-gray-700 font-medium">📅 Date:</label>
-        <input type="date" id="doc-date" class="w-full p-3 border border-gray-300 rounded-md mt-1">
+        <input type="date" id="doc-date" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-primary mt-1">
       </div>
     </div>
 
-    <!-- Questions -->
+    <!-- Question Container -->
     <div id="question-container" class="mt-6 space-y-4"></div>
 
     <!-- Buttons -->
     <div class="flex justify-between mt-6">
-      <button id="add-question" class="bg-primary text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition shadow-md">
-        ➕ Add Question
-      </button>
-      <button id="undo-action" class="bg-danger text-white py-3 px-4 rounded-lg hover:bg-red-600 transition shadow-md">
-        🔄 Undo Last Action
-      </button>
+      <button id="add-question" class="bg-primary text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition shadow-md">➕ Add Question</button>
+      <button id="undo-action" class="bg-danger text-white py-3 px-4 rounded-lg hover:bg-red-600 transition shadow-md">🔄 Undo Last Action</button>
     </div>
 
-    <!-- Export -->
+    <!-- Export Buttons -->
     <div class="grid grid-cols-2 gap-4 mt-8">
-      <button id="save-progress" class="bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition shadow-md">
-        💾 Save Progress
-      </button>
-      <button id="export-json" class="bg-accent text-white py-3 px-4 rounded-lg hover:bg-yellow-500 transition shadow-md">
-        📁 Export JSON
-      </button>
-      <button id="export-latex" class="bg-secondary text-white py-3 px-4 rounded-lg hover:bg-purple-600 transition shadow-md">
-        📜 Export LaTeX
-      </button>
-      <button id="export-pdf" class="bg-teal-500 text-white py-3 px-4 rounded-lg hover:bg-teal-600 transition shadow-md">
-        📄 Export PDF
-      </button>
-      <button id="reset-page" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition shadow-md col-span-2">
-        🔄 Reset
-      </button>
+      <button id="save-progress" class="bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition shadow-md">💾 Save Progress</button>
+      <button id="export-json" class="bg-accent text-white py-3 px-4 rounded-lg hover:bg-yellow-500 transition shadow-md">📁 Export JSON</button>
+      <button id="export-latex" class="bg-secondary text-white py-3 px-4 rounded-lg hover:bg-purple-600 transition shadow-md">📜 Export LaTeX</button>
+      <button id="export-pdf" class="bg-teal-500 text-white py-3 px-4 rounded-lg hover:bg-teal-600 transition shadow-md">📄 Export PDF</button>
+      <button id="reset-page" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition shadow-md col-span-2">🔄 Reset</button>
     </div>
 
-    <!-- Help -->
+    <!-- Help Link -->
     <div class="text-center mt-6">
       <a href="help.html" class="text-blue-500 underline hover:text-blue-700">📖 Need Help?</a>
     </div>

@@ -1,41 +1,47 @@
 // editor.js
 
-function initializeMathQuill(mathFieldElement) {
-  if (typeof MathQuill === "undefined") {
-    console.error("❌ MathQuill is not loaded!");
-    return;
-  }
+let tiptapEditors = [];
 
-  const MQ = MathQuill.getInterface(2);
+function initializeTiptapEditor(targetElement, type, container, index = null) {
+  const { Editor } = window['@tiptap/core'];
+  const StarterKit = window['@tiptap/starter-kit'].StarterKit;
+  const Placeholder = window['@tiptap/extension-placeholder'].Placeholder;
 
-  const mathField = MQ.MathField(mathFieldElement, {
-    spaceBehavesLikeTab: true,
-    handlers: {
-      edit: () => {
-        const latex = mathField.latex();
-        mathFieldElement.setAttribute("data-latex", latex);
+  const editor = new Editor({
+    element: targetElement,
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: type === 'question' ? 'Write your question...' : 'Write an option...',
+      }),
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'tiptap',
       },
     },
+    onUpdate: () => {
+      renderMathInElement(targetElement, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false,
+      });
+    }
   });
+
+  tiptapEditors.push({ type, editor, container, index });
 }
 
 function initializeCKEditors(questionBox) {
-  // Question editor (if you add ck-question textarea in the future)
-  // const questionInput = questionBox.querySelector('.ck-question');
-  // if (questionInput) {
-  //   ClassicEditor.create(questionInput)
-  //     .then(editor => ckeditors.push({ type: 'question', editor, container: questionBox }))
-  //     .catch(error => console.error(error));
-  // }
+  const questionEl = questionBox.querySelector(".ck-question");
+  if (questionEl) {
+    initializeTiptapEditor(questionEl, "question", questionBox);
+  }
 
-  // Option editors
-  questionBox.querySelectorAll(".ck-option").forEach((optionEl, index) => {
-    ClassicEditor.create(optionEl, {
-      toolbar: ["bold", "italic", "link", "undo", "redo"],
-    })
-      .then((editor) => {
-        ckeditors.push({ type: "option", editor, container: questionBox, index });
-      })
-      .catch((error) => console.error(error));
+  questionBox.querySelectorAll(".ck-option").forEach((optionEl, i) => {
+    initializeTiptapEditor(optionEl, "option", questionBox, i);
   });
 }

@@ -1,10 +1,11 @@
-// exportLatex.js
-
 function setupLatexExport() {
   const exportLatexButton = document.getElementById("export-latex");
-  if (!exportLatexButton) return;
 
-  exportLatexButton.addEventListener("click", () => {
+  // Prevent duplicate event bindings
+  const newExportLatexButton = exportLatexButton.cloneNode(true);
+  exportLatexButton.parentNode.replaceChild(newExportLatexButton, exportLatexButton);
+
+  newExportLatexButton.addEventListener("click", () => {
     console.log("📜 Exporting LaTeX...");
 
     const title = document.getElementById("doc-title").value.trim() || "Math Questions";
@@ -17,43 +18,49 @@ function setupLatexExport() {
 \\usepackage{amssymb}
 \\usepackage{enumitem}
 \\usepackage[margin=1in]{geometry}
-\\title{${title}}
-\\author{${author}}
+\\title{${escapeLatex(title)}}
+\\author{${escapeLatex(author)}}
 \\date{${date}}
 \\begin{document}
 \\maketitle
 \\begin{enumerate}
 `;
 
-    const grouped = {};
+    document.querySelectorAll(".question-box").forEach((box, index) => {
+      const questionEditorInstance = tiptapEditors.find(
+        (editor) => editor.container === box && editor.type === "question"
+      );
 
-    ckeditors.forEach(entry => {
-      const id = entry.container.dataset.qid || entry.container;
-      if (!grouped[id]) grouped[id] = { options: [], container: entry.container };
+      const question = questionEditorInstance
+        ? escapeLatex(stripHtml(questionEditorInstance.editor.getHTML().trim()))
+        : "";
 
-      const data = entry.editor.getData().trim();
-      if (entry.type === 'question') {
-        grouped[id].question = data;
-      } else {
-        grouped[id].options[entry.index] = data;
-      }
-    });
+      const difficulty = box.querySelector(".difficulty")?.value || "medium";
 
-    Object.values(grouped).forEach((q, index) => {
-      const difficulty = q.container.querySelector('.difficulty')?.value || 'medium';
-      const question = q.question || "";
-      const options = q.options || [];
+      const options = [];
+      box.querySelectorAll(".ck-option").forEach((optionDiv) => {
+        const optionEditorInstance = tiptapEditors.find(
+          (editor) =>
+            editor.container === box &&
+            editor.type === "option" &&
+            editor.editor.options.element === optionDiv
+        );
+        if (optionEditorInstance) {
+          const rawHtml = optionEditorInstance.editor.getHTML().trim();
+          options.push(escapeLatex(stripHtml(rawHtml)));
+        }
+      });
 
-      latexContent += `
+      if (question) {
+        latexContent += `
 \\item \\textbf{Question:} ${question} \\textbf{(${difficulty.toUpperCase()})}
 \\begin{enumerate}[label=(\\alph*)]
 `;
-
-      options.forEach((opt) => {
-        latexContent += `\\item ${opt}\n`;
-      });
-
-      latexContent += `\\end{enumerate}\n`;
+        options.forEach((option) => {
+          latexContent += `\\item ${option}\n`;
+        });
+        latexContent += `\\end{enumerate}\n`;
+      }
     });
 
     latexContent += `\\end{enumerate}\n\\end{document}`;
@@ -61,14 +68,35 @@ function setupLatexExport() {
     const blob = new Blob([latexContent], { type: "text/plain" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = generateFileName("tex");
+    link.download = `${title.replace(/\s+/g, "_")}_${author.replace(/\s+/g, "_")}_${date}.tex`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    showStatusMessage("✅ LaTeX file exported!");
+    console.log("✅ LaTeX file exported successfully!");
   });
 }
 
-// Call this inside init.js after DOM load
+// ✅ Escape LaTeX special characters
+function escapeLatex(str) {
+  return str
+    .replace(/\\/g, "\\textbackslash{}")
+    .replace(/_/g, "\\_")
+    .replace(/\$/g, "\\$")
+    .replace(/%/g, "\\%")
+    .replace(/&/g, "\\&")
+    .replace(/#/g, "\\#")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\^/g, "\\^{}")
+    .replace(/~/g, "\\~{}");
+}
+
+// ✅ Remove HTML tags
+function stripHtml(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent || div.innerText || "";
+}
+
 setupLatexExport();
